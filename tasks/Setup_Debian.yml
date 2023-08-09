@@ -1,0 +1,114 @@
+---
+
+- name: Disable thp
+  shell: |
+      echo never > /sys/kernel/mm/transparent_hugepage/enabled
+      echo never > /sys/kernel/mm/transparent_hugepage/defrag
+      echo 0 > /proc/sys/vm/compaction_proactiveness
+
+# - name: "Update CA Certificates"
+#   apt:
+#     name: ca-certificates
+#     update_cache: yes
+
+# - name: Install Puppet Repository
+#   block:
+#     - name: Add Public Key
+#       apt_key:
+#         url: http://mirror.lab.loxda.net/keyrings/puppetlabs/keys.d/puppetlabs-keyring.key
+#         state: present
+#     - name: Install Puppet Repo
+#       apt_repository:
+#         repo: deb http://mirror.lab.loxda.net/puppetlabs/ {{ ansible_distribution_release }} {{ puppet_version }}
+#         state: present
+#         filename: /etc/apt/sources.list.d/{{ puppet_version }}.list
+
+# - name: "Install Puppet Agent"
+#   apt: 
+#     name: puppet-agent
+#     force: yes 
+#     update_cache: yes
+#   when: disable_puppet
+
+# - name: "Bootstap Puppet Agent ssl"
+#   command: >
+#     /opt/puppetlabs/bin/puppet ssl clean --localca
+#     /opt/puppetlabs/bin/puppet ssl bootstrap --server {{ groups['tfm_puppet'][0] }}
+#     /opt/puppetlabs/bin/puppet config set server {{ groups['tfm_puppet'][0] }} --section main
+
+# - name: "Install and Configure Puppet Root CA"
+#   block:
+#     - name: "Fetch Puppet Root CA"
+#       command: >
+#         echo quit | openssl s_client -showcerts -servername server -connect tfm-puppet.loxda.net:8140 > /usr/local/share/ca-certificates/tfm-puppet-CA.crt
+#     - name: "Install Puppet Root CA"
+#       command: >
+#         update-ca-certificates
+
+- name: Install sudo
+  apt:
+    name: sudo
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install libpq-dev
+  apt:
+    name: libpq-dev
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install python3-psycopg2
+  apt:
+    name: python3-psycopg2
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install Postgresql server
+  apt:
+    name: "postgresql-{{ postgresql_version }}"
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: "Add a line to /etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
+  ansible.builtin.lineinfile:
+    path: "/etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
+    line: listen_addresses = '*'
+
+- name: "Add a line to /etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf"
+  ansible.builtin.lineinfile:
+    path: "/etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf"
+    line: host all all {{ lookup('community.general.dig', item + '.')}}/32 md5
+  loop: "{{ groups['tfm_app'] }}"
+
+- name: Restart service Postgresql server
+  ansible.builtin.service:
+    name: postgresql
+    state: restarted
+
+- name: Create Postgresql foreman user
+  vars:
+    ansible_ssh_pipelining: true
+  become: true
+  become_user: postgres
+  postgresql_user:
+    user: "{{ foreman_db_username }}"
+    password: "{{ foreman_db_password }}"
+    role_attr_flags: CREATEDB,NOSUPERUSER
+
+- name: Create Postgresql foreman database
+  vars:
+    ansible_ssh_pipelining: true
+  become: true
+  become_user: postgres
+  postgresql_db:
+    name: foreman
+    state: present
+
+- name: "Set Postgresql {{ foreman_db_username }} user OWNER on foreman database"
+  vars:
+    ansible_ssh_pipelining: true
+  become: true
+  become_user: postgres
+  postgresql_owner:
+    db: foreman
+    new_owner: "{{ foreman_db_username }}"
