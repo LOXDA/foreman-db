@@ -1,3 +1,10 @@
 ---
 # defaults file for foreman-db
-ansible_os_family: Debian
+
+postgresql_version: 13
+
+vault_foreman_db_username: ''
+vault_foreman_db_password: ''
+
+foreman_db_username: "{{ vault_foreman_db_username }}"
+foreman_db_password: "{{ vault_foreman_db_password }}"
