@@ -8,10 +8,10 @@ Requirements
 
 It is designed to be include as a submodule to a project with its siblings :
 
-* `ansible-role-foreman-db`
+* `ansible-role-foreman-db` (this one)
 * `ansible-role-foreman-puppet`
 * `ansible-role-foreman-proxy`
-* `ansible-role-foreman-app` (this one)
+* `ansible-role-foreman-app` 
 * `ansible-role-foreman-custom`
 
 `ansible-role-mirror` should help you get started with mirroring needed repositories.
