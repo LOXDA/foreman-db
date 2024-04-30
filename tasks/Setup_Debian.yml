@@ -15,13 +15,30 @@
 #   block:
 #     - name: Add Public Key
 #       apt_key:
-#         url: http://mirror.lab.loxda.net/keyrings/puppetlabs/keys.d/puppetlabs-keyring.key
+#         url: https://apt.puppetlabs.com/DEB-GPG-KEY-puppetlabs
 #         state: present
 #     - name: Install Puppet Repo
 #       apt_repository:
-#         repo: deb http://mirror.lab.loxda.net/puppetlabs/ {{ ansible_distribution_release }} {{ puppet_version }}
+#         repo: deb https://apt.puppetlabs.com/ {{ ansible_distribution_release }} {{ puppet_version }}
 #         state: present
 #         filename: /etc/apt/sources.list.d/{{ puppet_version }}.list
+
+# - name: Install Foreman Repository
+#   block:
+#     - name: Add Public Key
+#       apt_key:
+#         url: https://deb.theforeman.org/foreman.asc
+#         state: present
+#     - name: Install Foreman Repo
+#       apt_repository:
+#         repo: deb https://deb.theforeman.org/ {{ ansible_distribution_release }} {{ foreman_version }}
+#         state: present
+#         filename: /etc/apt/sources.list.d/foreman.list
+#     - name: Install Foreman Plugin Repo
+#       apt_repository:
+#         repo: deb https://deb.theforeman.org/ plugins {{ foreman_version }}
+#         state: present
+#         filename: /etc/apt/sources.list.d/foreman_plugins.list
 
 # - name: "Install Puppet Agent"
 #   apt: 
