@@ -43,18 +43,22 @@
 - name: Install sudo
   apt:
     name: sudo
+    update_cache: yes
 
 - name: Install libpq-dev
   apt:
     name: libpq-dev
+    update_cache: yes
 
 - name: Install python3-psycopg2
   apt:
     name: python3-psycopg2
+    update_cache: yes
 
 - name: Install Postgresql server
   apt:
     name: "postgresql-{{ postgresql_version }}"
+    update_cache: yes
 
 - name: "Add a line to /etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
   ansible.builtin.lineinfile:
