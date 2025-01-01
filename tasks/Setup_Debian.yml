@@ -1,44 +1,52 @@
 ---
 
+# MYSQL OR POSTGRESQL (KNOW HOW TO) USE HUGEPAGES
+# you'd still have to enable it in database server configuration
 # - name: Disable thp
 #   shell: |
 #       echo never > /sys/kernel/mm/transparent_hugepage/enabled
 #       echo never > /sys/kernel/mm/transparent_hugepage/defrag
 #       echo 0 > /proc/sys/vm/compaction_proactiveness
 
-# - name: Install Puppet Repository
-#   block:
-#     - name: Add Public Key
-#       apt_key:
-#         url: https://apt.puppetlabs.com/DEB-GPG-KEY-puppetlabs
-#         state: present
-#     - name: Install Puppet Repo
-#       apt_repository:
-#         repo: deb https://apt.puppetlabs.com/ {{ ansible_distribution_release }} {{ puppet_version }}
-#         state: present
-#         filename: /etc/apt/sources.list.d/{{ puppet_version }}.list
+- name: Install gpg
+  ansible.builtin.apt:
+    name: gpg
 
-# - name: "Install Puppet Agent"
-#   apt: 
-#     name: puppet-agent
-#     force: yes 
-#     update_cache: yes
-#   when: disable_puppet
+- name: Install Puppet Repository
+  block:
+    - name: Add Public Key
+      ansible.builtin.apt_key:
+        url: https://apt.puppetlabs.com/keyring.gpg
+        state: present
+    - name: Install Puppet Repo
+      ansible.builtin.apt_repository:
+        repo: deb https://apt.puppetlabs.com/ {{ ansible_distribution_release }} {{ puppet_version }}
+        state: present
+        filename: '{{ puppet_version }}'
 
-# - name: "Bootstap Puppet Agent ssl"
-#   command: >
-#     /opt/puppetlabs/bin/puppet ssl clean --localca
-#     /opt/puppetlabs/bin/puppet ssl bootstrap --server {{ groups['tfm_puppet'][0] }}
-#     /opt/puppetlabs/bin/puppet config set server {{ groups['tfm_puppet'][0] }} --section main
+- name: "Install Puppet Agent"
+  ansible.builtin.apt:
+    name: puppet-agent
+    force: yes
+    allow_unauthenticated: true
 
-# - name: "Install and Configure Puppet Root CA"
-#   block:
-#     - name: "Fetch Puppet Root CA"
-#       command: >
-#         echo quit | openssl s_client -showcerts -servername server -connect tfm-puppet.loxda.net:8140 > /usr/local/share/ca-certificates/tfm-puppet-CA.crt
-#     - name: "Install Puppet Root CA"
-#       command: >
-#         update-ca-certificates
+- name: "Bootstap Puppet Agent ssl"
+  ansible.builtin.shell: |
+    /opt/puppetlabs/bin/puppet config set server {{ groups['tfm_puppet'][0] }} --section main
+    /opt/puppetlabs/bin/puppet ssl bootstrap --server {{ groups['tfm_puppet'][0] }}
+
+- name: "Install and Configure Puppet Root CA"
+  block:
+    - name: "Fetch Puppet Root CA"
+      ansible.builtin.shell: |
+        echo quit | openssl s_client -showcerts -servername server -connect {{ groups['tfm_puppet'][0] }}:8140 > /usr/local/share/ca-certificates/{{ groups['tfm_puppet'][0] }}-CA.crt 2>&1
+      args:
+        executable: /bin/bash
+    - name: "Install Puppet Root CA"
+      ansible.builtin.shell: |
+        update-ca-certificates --fresh
+      args:
+        executable: /bin/bash
 
 - name: Install sudo
   apt:
