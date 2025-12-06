@@ -16,11 +16,11 @@
   block:
     - name: Add Public Key
       ansible.builtin.apt_key:
-        url: https://apt.puppetlabs.com/keyring.gpg
+        url: "{{ puppet_repo_key}}"
         state: present
     - name: Install Puppet Repo
       ansible.builtin.apt_repository:
-        repo: deb https://apt.puppetlabs.com/ {{ ansible_distribution_release }} {{ puppet_version }}
+        repo: "{{ puppet_repo_url }}"
         state: present
         filename: '{{ puppet_version }}'
 
@@ -99,7 +99,7 @@
     ansible_ssh_pipelining: true
   become: true
   become_user: postgres
-  postgresql_db:
+  community.postgresql.postgresql_db:
     name: foreman
     state: present
 
@@ -108,6 +108,21 @@
     ansible_ssh_pipelining: true
   become: true
   become_user: postgres
-  postgresql_owner:
+  community.postgresql.postgresql_owner:
     db: foreman
     new_owner: "{{ foreman_db_username }}"
+
+# TODO postgres >=15
+# "GRANT ALL ON SCHEMA public TO {{ foreman_db_username }};"
+- name: GRANT ALL PRIVILEGES ON SCHEMA public TO foreman
+  vars:
+    ansible_ssh_pipelining: true
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_privs:
+    login_db: foreman
+    privs: ALL
+    type: schema
+    objs: public
+    role: "{{ foreman_db_username }}"
+
